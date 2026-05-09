@@ -143,11 +143,14 @@ El crecimiento individual se modela en dos componentes:
 | Intermedio | 0.70 |
 | Suprimido | 0.40 |
 
-**Altura** — relación altura-diámetro mediante ecuaciones de Chapman-Richards calibradas con el propio inventario de campo (ajuste por mínimos cuadrados no lineales, paquete `minpack.lm`), una curva por especie:
+**Altura** — tasa de incremento anual fija por género, modulada por posición sociológica y clase diamétrica:
 
-> h = a × (1 − exp(−b × d))^c
+| Género | Tasa base (m/año) | Altura máxima |
+|--------|-------------------|---------------|
+| *Pinus* | 0.20 | 22 m |
+| *Quercus* | 0.15 | 17 m |
 
-Los parámetros *a*, *b*, *c* están fijados por especie (*Pinus* spp. y *Quercus* spp.) en `config/02_config_especies.R`, estimados a partir de los pares (d, h) observados en los 58 sitios de muestreo.
+El modificador por clase diamétrica reduce el incremento conforme el árbol madura (árboles jóvenes < 20 cm: ×1.3; medianos 20-40 cm: ×1.0; grandes > 40 cm: ×0.8). Estos valores se definen en `config/02_config_especies.R` y `core/10_modelos_crecimiento.R`.
 
 ### ICA biológico
 
