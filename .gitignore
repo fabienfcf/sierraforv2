@@ -1,0 +1,21 @@
+# R output
+*.rds
+Rplots.pdf
+.Rhistory
+.RData
+.Rproj.user/
+
+# Generated outputs (not source)
+resultados/
+graficos/
+reportes/
+tablas_latex/
+datos_intermedios/
+Fichas/
+Mapas_sitios/
+Fotos_sitios/
+
+# Misc
+*.pdf
+*.png
+*.log
