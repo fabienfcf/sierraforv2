@@ -10,7 +10,7 @@ Modelo de simulación forestal de dinámica poblacional (crecimiento, reclutamie
 
 SIERRAFOR permite simular la evolución del bosque a 10 años, con o sin cortas de saneamiento, y generar automáticamente las tablas y gráficos requeridos por la normatividad mexicana. Incluye:
 
-- Modelos de crecimiento calibrados con datos INFyS 2015-2020 (Chapman-Richards)
+- Modelos de crecimiento altura-diámetro (Chapman-Richards) calibrados con el inventario local
 - Estimación biológica del ICA (Incremento Corriente Anual)
 - Optimización de intensidad de cortas mediante criterio ICA-Liocourt
 - Generación de 7+ tablas LaTeX listas para integrar al PMF
@@ -66,9 +66,6 @@ sierraforv2/
 ├── tests/             # Pruebas de integración y verificación
 │   ├── 22_VERIFICACION_TABLAS_LATEX.R
 │   └── test_*.R
-│
-├── Calibracion/       # Calibración de modelos (Chapman-Richards)
-│   └── Calibracion_chapman.R
 │
 ├── opcional/          # Módulos opcionales
 │   └── 23_Main_incendio.R          # Riesgo de incendio (combustibles)
@@ -135,7 +132,22 @@ El inventario forestal se provee en `inventario_forestal.xlsx` con la estructura
 
 ### Modelos de crecimiento
 
-Ecuaciones de Chapman-Richards calibradas con datos del Inventario Nacional Forestal y de Suelos (INFyS) 2015-2020, específicas por género (*Pinus* / *Quercus*).
+El crecimiento individual se modela en dos componentes:
+
+**Diámetro** — tasa base anual por género × modificador de posición sociológica (dominancia):
+
+| Posición | Factor |
+|----------|--------|
+| Dominante | 1.20 |
+| Codominante | 1.00 |
+| Intermedio | 0.70 |
+| Suprimido | 0.40 |
+
+**Altura** — relación altura-diámetro mediante ecuaciones de Chapman-Richards calibradas con el propio inventario de campo (ajuste por mínimos cuadrados no lineales, paquete `minpack.lm`), una curva por especie:
+
+> h = a × (1 − exp(−b × d))^c
+
+Los parámetros *a*, *b*, *c* están fijados por especie (*Pinus* spp. y *Quercus* spp.) en `config/02_config_especies.R`, estimados a partir de los pares (d, h) observados en los 58 sitios de muestreo.
 
 ### ICA biológico
 
@@ -143,10 +155,19 @@ El Incremento Corriente Anual se estima como la diferencia de volumen entre el e
 
 ### Método de cortas ICA-Liocourt
 
-1. El ICA define el volumen de posibilidad anual (biológicamente sustentable)
-2. La distribución de Liocourt (factor Q = 1.7) identifica las clases diamétricas con exceso de densidad
-3. Las cortas priorizan árboles suprimidos → regeneración de clases inferiores
-4. El algoritmo garantiza que la extracción no supere la posibilidad calculada
+El algoritmo combina un criterio de sustentabilidad (ICA) con uno de estructura (Liocourt) y se configura a través de dos módulos independientes:
+
+**`config/05_config_programa_cortas.R`** — define todos los parámetros de manejo:
+- `PROGRAMA_CORTAS`: tabla con el año de intervención, intensidad (% del ICA), y protección de maduros por UMM
+- `DMC`: diámetro mínimo de corta por género (Pinus ≥ 20 cm, Quercus ≥ 2 cm)
+- `D_MADUREZ`: umbral de madurez (Pinus 55 cm, Quercus 45 cm) — árboles por encima pueden protegerse con `proteger_maduros = TRUE`
+- `Q_FACTOR` y `N_REF_LIOCOURT_POR_UMM`: factor de la distribución ideal y densidad objetivo en la clase de referencia (40-45 cm), ajustable por UMM
+- `proporcion_quercus`: proporción objetivo de Quercus en el volumen extraído (control de composición)
+
+**`core/14_optimizador_cortas.R`** — ejecuta el algoritmo en tres pasos:
+1. **Volumen objetivo** = ICA anual × 10 años × intensidad (%) — garantiza que la extracción no supere la posibilidad biológica
+2. **Árboles maduros** — se intervienen primero (si no están protegidos), priorizando la apertura del dosel a la regeneración
+3. **Selección Liocourt** — para el volumen restante, cada árbol recibe una "distancia a la curva ideal"; se cortan primero los de mayor excedente (distancia > 0), avanzando hacia clases con sobredensidad hasta alcanzar el volumen objetivo
 
 ### Cumplimiento NOM-152-SEMARNAT-2023
 
@@ -161,7 +182,7 @@ Genera automáticamente:
 
 ## Contexto de aplicación
 
-Desarrollado para la UMM **Las Alazanas**, municipio de Arteaga, Coahuila, México. PMF vigente 2026-2036. Los datos de ejemplo incluidos corresponden a 58 sitios de muestreo en bosque de pino-encino de la Sierra Madre Oriental.
+Desarrollado para el ejido **Las Alazanas**, municipio de Iturbide, Nuevo León, México. PMF vigente 2026-2036. Los datos de ejemplo incluidos corresponden a 58 sitios de muestreo en bosque de pino-encino de la Sierra Madre Oriental.
 
 ## Autor
 
